@@ -39,7 +39,7 @@ from rmgpy import settings
 
 from rmgpy.molecule import Molecule
 from rmgpy.quantity import Quantity, Energy, SurfaceConcentration
-from rmgpy.solver.base import TerminationTime, TerminationConversion, TerminationRateRatio
+from rmgpy.solver.base import TerminationTime, TerminationConversion, TerminationRateRatio, TerminationNumberAvgMW, TerminationWeightAvgMW
 from rmgpy.solver.simple import SimpleReactor
 from rmgpy.solver.liquid import LiquidReactor
 from rmgpy.solver.surface import SurfaceReactor
@@ -185,6 +185,8 @@ def simpleReactor(temperature,
                   terminationConversion=None,
                   terminationTime=None,
                   terminationRateRatio=None,
+                  terminationNumberAvgMW=None,
+                  terminationWeightAvgMW=None,
                   balanceSpecies=None,
                   sensitivity=None,
                   sensitivityThreshold=1e-3,
@@ -234,6 +236,10 @@ def simpleReactor(temperature,
         termination.append(TerminationTime(Quantity(terminationTime)))
     if terminationRateRatio is not None:
         termination.append(TerminationRateRatio(terminationRateRatio))
+    if terminationNumberAvgMW is not None:
+        termination.append(TerminationNumberAvgMW(terminationNumberAvgMW))
+        if terminationWeightAvgMW is not None:
+            termination.append(TerminationWeightAvgMW(terminationWeightAvgMW))
     if len(termination) == 0:
         raise InputError('No termination conditions specified for reaction system #{0}.'.format(len(rmg.reactionSystems)+2))
     
@@ -285,6 +291,8 @@ def liquidReactor(temperature,
                   nSims = 4,
                   terminationTime=None,
                   terminationRateRatio=None,
+                  terminationNumberAvgMW=None,
+                  terminationWeightAvgMW=None,
                   sensitivity=None,
                   sensitivityThreshold=1e-3,
                   sensitivityTemperature=None,
@@ -322,6 +330,10 @@ def liquidReactor(temperature,
         termination.append(TerminationTime(Quantity(terminationTime)))
     if terminationRateRatio is not None:
         termination.append(TerminationRateRatio(terminationRateRatio))
+    if terminationNumberAvgMW is not None:
+        termination.append(TerminationNumberAvgMW(terminationNumberAvgMW))
+    if terminationWeightAvgMW is not None:
+        termination.append(TerminationWeightAvgMW(terminationWeightAvgMW))
     if len(termination) == 0:
         raise InputError('No termination conditions specified for reaction system #{0}.'.format(len(rmg.reactionSystems)+2))
     
