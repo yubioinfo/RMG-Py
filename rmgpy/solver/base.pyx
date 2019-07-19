@@ -994,6 +994,7 @@ cdef class ReactionSystem(DASx):
                     logging.info('Surface now has {0} Species and {1} Reactions'.format(len(self.surfaceSpeciesIndices),len(self.surfaceReactionIndices)))
                     
             if filterReactions:
+                mww = self.mww
                 # Calculate thresholds for reactions
                 (unimolecularThresholdRateConstant,
                  bimolecularThresholdRateConstant,
@@ -1004,22 +1005,21 @@ cdef class ReactionSystem(DASx):
                 for i in xrange(numCoreSpecies):
                     if not unimolecularThreshold[i]:
                         # Check if core species concentration has gone above threshold for unimolecular reaction
-                        if coreSpeciesConcentrations[i] > unimolecularThresholdVal:
+                        if (fluxBasis == 'mass' and coreSpeciesConcentrations[i]*mww[i] > unimolecularThresholdVal) or coreSpeciesConcentrations[i] > unimolecularThresholdVal:
                             unimolecularThreshold[i] = True
                 for i in xrange(numCoreSpecies):
                     for j in xrange(i, numCoreSpecies):
                         if not bimolecularThreshold[i,j]:
-                            if coreSpeciesConcentrations[i]*coreSpeciesConcentrations[j] > bimolecularThresholdVal:
+                            if (fluxBasis == 'mass' and coreSpeciesConcentrations[i]*coreSpeciesConcentrations[j]*(mww[i]+mww[j]) > bimolecularThresholdVal) or coreSpeciesConcentrations[i]*coreSpeciesConcentrations[j] > bimolecularThresholdVal:
                                 bimolecularThreshold[i,j] = True
                 if self.trimolecular:
                     for i in xrange(numCoreSpecies):
                         for j in xrange(i, numCoreSpecies):
                             for k in xrange(j, numCoreSpecies):
                                 if not trimolecularThreshold[i,j,k]:
-                                    if (coreSpeciesConcentrations[i]*
-                                        coreSpeciesConcentrations[j]*
-                                        coreSpeciesConcentrations[k]
-                                            > trimolecularThresholdVal):
+                                    if (fluxBasis == 'mass' and (coreSpeciesConcentrations[i]*coreSpeciesConcentrations[j]*coreSpeciesConcentrations[k]*
+                                        (mww[i]+mww[j]+mww[k])> trimolecularThresholdVal)) or (coreSpeciesConcentrations[i]*
+                                        coreSpeciesConcentrations[j]*coreSpeciesConcentrations[k] > trimolecularThresholdVal):
                                         trimolecularThreshold[i,j,k] = True
             
             
