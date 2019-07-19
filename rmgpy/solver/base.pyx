@@ -1229,6 +1229,20 @@ cdef class ReactionSystem(DASx):
                         logging.info('At time {0:10.4e} s, reached target termination RateRatio: {1}'.format(self.t,charRate/maxCharRate))
                         self.logConversions(speciesIndex, y0)
                         
+                elif isinstance(term, TerminationNumberAvgMW):
+                    avgMW = numpy.dot(self.y[:numCoreSpecies],self.mw[:numCoreSpecies])*constants.Na*1000.0/self.y[:numCoreSpecies].sum()
+                    if avgMW > term.avgMW:
+                        terminated = True
+                        logging.info('At time {0:10.4e} s, reached target termination Number Averaged MW: {1}'.format(self.t,avgMW))
+                        self.logConversions(speciesIndex, y0)
+                        
+                elif isinstance(term, TerminationWeightAvgMW):
+                    avgMW = numpy.dot(self.y[:numCoreSpecies],self.mw[:numCoreSpecies]**2)*constants.Na*1000.0/self.y[:numCoreSpecies].dot(self.mw[:numCoreSpecies])
+                    if avgMW > term.avgMW:
+                        terminated = True
+                        logging.info('At time {0:10.4e} s, reached target termination Weight Averaged MW: {1}'.format(self.t,avgMW))
+                        self.logConversions(speciesIndex, y0)
+                        
             # Increment destination step time if necessary
             if self.t >= 0.9999 * stepTime:
                 stepTime *= 10.0
@@ -1416,3 +1430,20 @@ class TerminationRateRatio:
     def __init__(self, ratio=0.01):
         self.ratio = ratio
         
+class TerminationNumberAvgMW:
+    """
+    Represent an number averaged MW in amu at which a simulation
+    should be terminated. This class has one attribute the average
+    molecular weight.  Useful for molecular growth situations.
+    """
+    def __init__(self, avgMW=50.0):
+        self.avgMW = avgMW
+
+class TerminationWeightAvgMW:
+    """
+    Represent an weight averaged MW in amu at which a simulation
+    should be terminated. This class has one attribute the average
+    molecular weight.  Useful for molecular growth situations.
+    """
+    def __init__(self, avgMW=50.0):
+        self.avgMW = avgMW
