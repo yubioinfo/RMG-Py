@@ -462,7 +462,7 @@ def model(toleranceMoveToCore=None, toleranceMoveEdgeReactionToCore=numpy.inf,to
           toleranceMoveEdgeReactionToCoreInterrupt=None, maximumEdgeSpecies=1000000, minCoreSizeForPrune=50, 
           minSpeciesExistIterationsForPrune=2, filterReactions=False, filterThreshold=1e8, ignoreOverallFluxCriterion=False,
           maxNumSpecies=None,maxNumObjsPerIter=1,terminateAtMaxObjects=False,toleranceThermoKeepSpeciesInEdge=numpy.inf,dynamicsTimeScale=(0.0,'sec'),
-          toleranceBranchReactionToCore=0.0, branchingIndex=0.5, branchingRatioMax=1.0):
+          toleranceBranchReactionToCore=0.0, branchingIndex=0.5, branchingRatioMax=1.0, fluxBasis='mole', massIndex=1.0):
     """
     How to generate the model. `toleranceMoveToCore` must be specified. 
     toleranceMoveReactionToCore and toleranceReactionInterruptSimulation refers to an additional criterion for forcing an edge reaction to be included in the core
@@ -501,6 +501,8 @@ def model(toleranceMoveToCore=None, toleranceMoveEdgeReactionToCore=numpy.inf,to
             toleranceBranchReactionToCore=toleranceBranchReactionToCore,
             branchingIndex=branchingIndex,
             branchingRatioMax=branchingRatioMax,
+            fluxBasis=fluxBasis,
+            massIndex=massIndex,
         )
     )
     

@@ -66,7 +66,7 @@ class ModelSettings(object):
           toleranceMoveEdgeReactionToSurfaceInterrupt=None,toleranceMoveEdgeReactionToCoreInterrupt=None, maximumEdgeSpecies=1000000, minCoreSizeForPrune=50, 
           minSpeciesExistIterationsForPrune=2, filterReactions=False, filterThreshold=1e8, ignoreOverallFluxCriterion=False, maxNumSpecies=None, maxNumObjsPerIter=1,
           terminateAtMaxObjects=False,toleranceThermoKeepSpeciesInEdge=numpy.inf,dynamicsTimeScale = Quantity((0.0,'sec')),
-          toleranceBranchReactionToCore=0.0, branchingIndex=0.5, branchingRatioMax=1.0):
+          toleranceBranchReactionToCore=0.0, branchingIndex=0.5, branchingRatioMax=1.0, fluxBasis='mole', massIndex=1.0):
 
         
         self.fluxToleranceKeepInEdge = toleranceKeepInEdge
@@ -89,6 +89,7 @@ class ModelSettings(object):
         self.branchingIndex = branchingIndex
         self.branchingRatioMax = branchingRatioMax
         
+        self.massIndex = massIndex
         if toleranceInterruptSimulation:
             self.fluxToleranceInterrupt = toleranceInterruptSimulation
         else:
@@ -113,7 +114,12 @@ class ModelSettings(object):
             self.maxNumObjsPerIter = numpy.inf
         else:
             self.maxNumObjsPerIter = maxNumObjsPerIter
-            
+
+        if fluxBasis in ['mole','mass']:
+            self.fluxBasis = fluxBasis
+        else:
+            raise ValueError("fluxBasis must either be 'mole' or 'mass' not '{}'".format(fluxBasis))
+
 class SimulatorSettings(object):
     """
     class for holding the parameters affecting the behavior of the solver
