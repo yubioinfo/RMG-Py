@@ -65,6 +65,9 @@ cdef class ReactionSystem(DASx):
     cdef public numpy.ndarray Keq # equilibrium constants
     cdef public numpy.ndarray networkLeakCoefficients
     cdef public numpy.ndarray jacobianMatrix
+    cdef public numpy.ndarray mw
+    cdef public numpy.ndarray mww #molecular weight based weights of species
+    cdef public numpy.ndarray mwwNetwork #molecular weight based weights of pdep networks
 
     cdef public numpy.ndarray coreSpeciesConcentrations
     
