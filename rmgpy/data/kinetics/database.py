@@ -32,7 +32,9 @@
 import os.path
 import logging
 from copy import deepcopy
+
 import numpy
+import yaml
 
 import rmgpy.constants as constants
 from rmgpy.kinetics import Arrhenius, ArrheniusEP, ThirdBody, Lindemann, Troe, \
@@ -49,6 +51,8 @@ from .library import LibraryReaction, KineticsLibrary
 from .common import ensure_species, generate_molecule_combos, \
                     find_degenerate_reactions, ensure_independent_atom_ids
 from rmgpy.exceptions import DatabaseError
+from rmgpy.rmgobject import RMGObject
+from rmgpy.quantity import ScalarQuantity
 
 ################################################################################
 
@@ -800,3 +804,82 @@ and immediately used in input files without any additional changes.
                 if isinstance(kinetics, (ArrheniusEP, ArrheniusBM)):
                     kinetics = kinetics.toArrhenius(H298)
                 return kinetics
+
+    def loadFilterFits(self, database_directory, model_settings_list):
+        """
+        Load Arrhenius fits of the highest rates in each training reaction family from
+        `RMG-database/input/FilterArrheniusFits.yml`.
+
+        For reaction filtering, the loaded fits per reaction family are sorted to correspond to the user
+        defined families.
+        """
+
+        families = self.families.keys()
+
+        path = os.path.join(database_directory, 'FilterArrheniusFits.yml')
+        path_notebook = os.path.join(os.path.dirname(database_directory), 'scripts', 'generateFilterArrheniusFits.ipynb')
+
+        logging.debug("Loading Arrhenius fits from {0} based on training reactions to generate custom filter criteria"
+                      "for each reaction family".format(path))
+
+        class_dictionary = {'ScalarQuantity': ScalarQuantity,
+                            'Arrhenius': Arrhenius,
+                            'FilterLimitFits': FilterLimitFits,
+        }
+
+        filter_fits = FilterLimitFits()
+        filter_fits.load_yaml(path, class_dictionary)
+
+        unimol_kinetics_list = []
+        bimol_kinetics_list = []
+        for family in families:
+            try:
+                unimol_kinetics_list.append(filter_fits.unimol[family])
+            except KeyError:
+                # We could not find the filter Arrhenius fits for this family. Raise an exception or else the indices will be off
+                raise ValueError("Unable to find filter Arrhenius fits for family {0}. Ensure that the file {1} exists. "
+                                 "If it exists make sure it has the correct format or update it using the IPython "
+                                 "notebook {2}.".format(family, path, path_notebook))
+
+            try:
+                bimol_kinetics_list.append(filter_fits.bimol[family])
+            except KeyError:
+                # We could not find the filter Arrhenius fits for this family. Raise an exception or else the indices will be off
+                raise ValueError("Unable to find filter Arrhenius fits for family {0}. Ensure that the file {1} exists. "
+                                 "If it exists make sure it has the correct format or update it using the IPython "
+                                 "notebook {2}.".format(family, path, path_notebook))
+
+        # Trimolecular Arrhenius fit is adapted from bimolecular Arrhenius fit
+        for model_settings in model_settings_list:
+            model_settings.unimolecularFilterFit = unimol_kinetics_list
+            model_settings.bimolecularFilterFit = bimol_kinetics_list
+
+
+class FilterLimitFits(RMGObject):
+    """
+    Child class of RMG Object for storing filter Arrhenius fits.
+    """
+
+    def __init__(self, unimol=None, bimol=None):
+        super(FilterLimitFits, self).__init__()
+        if unimol:
+            self.unimol = unimol
+        else:
+            self.unimol = {}
+        if bimol:
+            self.bimol = bimol
+        else:
+            self.bimol = {}
+
+    def load_yaml(self, path, class_dictionary):
+        with open(path, 'r') as f:
+            data = yaml.safe_load(stream=f)
+
+        self.make_object(data, class_dictionary)
+
+    def save_yaml(self, path):
+        """
+        Save the data to a .yml file
+        """
+        with open(path, 'w') as f:
+            yaml.dump(data=self.as_dict(), stream=f)

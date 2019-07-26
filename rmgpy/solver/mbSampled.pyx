@@ -148,7 +148,7 @@ cdef class MBSampledReactor(ReactionSystem):
     cpdef initializeModel(self, list coreSpecies, list coreReactions, list edgeSpecies, list edgeReactions,
                           list surfaceSpecies=None, list surfaceReactions=None, list pdepNetworks=None,
                           atol=1e-16, rtol=1e-8, sensitivity=False, sens_atol=1e-6, sens_rtol=1e-4,
-                          filterReactions=False, dict conditions=None):
+                          filterReactions=False, dict conditions=None, int num_families=0):
         """
         Initialize a simulation of the reaction system using the provided
         kinetic model. You will probably want to create your own version of this
@@ -165,14 +165,15 @@ cdef class MBSampledReactor(ReactionSystem):
         ReactionSystem.initializeModel(self, coreSpecies=coreSpecies, coreReactions=coreReactions, edgeSpecies=edgeSpecies, 
                                        edgeReactions=edgeReactions, surfaceSpecies=surfaceSpecies, surfaceReactions=surfaceReactions,
                                        pdepNetworks=pdepNetworks, atol=atol, rtol=rtol, sensitivity=sensitivity, sens_atol=sens_atol, 
-                                       sens_rtol=sens_rtol)
-        
+                                       sens_rtol=sens_rtol, filterReactions=filterReactions, conditions=conditions,
+                                       num_families=num_families)
+
         # Set initial conditions
         self.set_initial_conditions()
 
         # Compute reaction thresholds if reaction filtering is turned on
         if filterReactions:
-            ReactionSystem.set_initial_reaction_thresholds(self)
+            ReactionSystem.set_initial_reaction_thresholds(self, num_families)
         
         self.set_colliders(coreReactions, edgeReactions, coreSpecies)
         

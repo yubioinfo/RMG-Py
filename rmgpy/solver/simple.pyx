@@ -41,7 +41,10 @@ cimport cython
 import rmgpy.constants as constants
 cimport rmgpy.constants as constants
 from rmgpy.quantity import Quantity
-from rmgpy.quantity cimport ScalarQuantity, ArrayQuantity
+from rmgpy.quantity cimport ScalarQuantity
+
+
+###############################################################################
 
 cdef class SimpleReactor(ReactionSystem):
     """
@@ -166,7 +169,7 @@ cdef class SimpleReactor(ReactionSystem):
     cpdef initializeModel(self, list coreSpecies, list coreReactions, list edgeSpecies, list edgeReactions,
                           list surfaceSpecies=None, list surfaceReactions=None, list pdepNetworks=None,
                           atol=1e-16, rtol=1e-8, sensitivity=False, sens_atol=1e-6, sens_rtol=1e-4,
-                          filterReactions=False, dict conditions=None):
+                          filterReactions=False, dict conditions=None, int num_families=0):
         """
         Initialize a simulation of the simple reactor using the provided kinetic
         model.
@@ -180,17 +183,19 @@ cdef class SimpleReactor(ReactionSystem):
         
         # First call the base class version of the method
         # This initializes the attributes declared in the base class
-        ReactionSystem.initializeModel(self, coreSpecies=coreSpecies, coreReactions=coreReactions, edgeSpecies=edgeSpecies,
-                                       edgeReactions=edgeReactions, surfaceSpecies=surfaceSpecies, surfaceReactions=surfaceReactions,
-                                       pdepNetworks=pdepNetworks, atol=atol, rtol=rtol, sensitivity=sensitivity, sens_atol=sens_atol,
-                                       sens_rtol=sens_rtol, filterReactions=filterReactions, conditions=conditions)
+        ReactionSystem.initializeModel(self, coreSpecies=coreSpecies, coreReactions=coreReactions,
+                                       edgeSpecies=edgeSpecies, edgeReactions=edgeReactions,
+                                       surfaceSpecies=surfaceSpecies, surfaceReactions=surfaceReactions,
+                                       pdepNetworks=pdepNetworks, atol=atol, rtol=rtol, sensitivity=sensitivity,
+                                       sens_atol=sens_atol, sens_rtol=sens_rtol, filterReactions=filterReactions,
+                                       conditions=conditions, num_families=num_families)
 
         # Set initial conditions
         self.set_initial_conditions()
 
         # Compute reaction thresholds if reaction filtering is turned on
         if filterReactions:
-            ReactionSystem.set_initial_reaction_thresholds(self)
+            ReactionSystem.set_initial_reaction_thresholds(self, num_families)
         
         self.set_colliders(coreReactions, edgeReactions, coreSpecies)
         
@@ -253,20 +258,26 @@ cdef class SimpleReactor(ReactionSystem):
                 
     def get_threshold_rate_constants(self, modelSettings):
         """
-        Get the threshold rate constants for reaction filtering.
+        Get the threshold rate constants as a function of temperature for reaction filtering by setting the
+        maximum uni-/bi-/trimolecular rate as a custom rate constant thresholds for each reaction family.
         """
-        # Set the maximum unimolecular rate to be kB*T/h
-        unimolecular_threshold_rate_constant = 2.08366122e10 * self.T.value_si
-        # Set the maximum bi/trimolecular rate by using the user-defined rate constant threshold
-        bimolecular_threshold_rate_constant = modelSettings.filterThreshold
-        # Maximum trimolecular rate constants are approximately three
-        # orders of magnitude smaller (accounting for the unit
-        # conversion from m^3/mol/s to m^6/mol^2/s) based on
-        # extending the Smoluchowski equation to three molecules
-        trimolecular_threshold_rate_constant = modelSettings.filterThreshold / 1e3
-        return (unimolecular_threshold_rate_constant,
-                bimolecular_threshold_rate_constant,
-                trimolecular_threshold_rate_constant)
+        # Set the maximum unimolecular rate to be kB*T/h as long as the database is not cleaned up to generate filter
+        # fits lower than the collision limit.
+        kvals_uni = numpy.array([min(kinetics.getRateCoefficient(self.T.value_si), constants.kB *
+                                     self.T.value_si / constants.h)
+                                 if kinetics else constants.kB * self.T.value_si / constants.h
+                                 for kinetics in modelSettings.unimolecularFilterFit], dtype=numpy.float64)
+
+        # 1.0e8 estimated, based on the same order of magnitude of hydrogen colliding at 1000 K.
+        kvals_bi = numpy.array([min(kinetics.getRateCoefficient(self.T.value_si), 1.0e8) if kinetics else 1.0e8
+                                for kinetics in modelSettings.bimolecularFilterFit], dtype=numpy.float64)
+
+        # Maximum trimolecular rate constants are approximately three orders of magnitude smaller (accounting for the
+        # unit conversion from m^3/mol/s to m^6/mol^2/s) based on extending the Smoluchowski equation to three molecules.
+        kvals_tri = numpy.array([min(1.0e-3 * kinetics.getRateCoefficient(self.T.value_si), 1.0e5) if kinetics else 1.0e5
+                                for kinetics in modelSettings.bimolecularFilterFit], dtype=numpy.float64)
+
+        return (kvals_uni, kvals_bi, kvals_tri)
 
     def set_colliders(self, coreReactions, edgeReactions, coreSpecies):
         """

@@ -42,7 +42,7 @@ cimport cython
 import rmgpy.constants as constants
 cimport rmgpy.constants as constants
 from rmgpy.quantity import Quantity
-from rmgpy.quantity cimport ScalarQuantity, ArrayQuantity
+from rmgpy.quantity cimport ScalarQuantity
 
 cdef class SurfaceReactor(ReactionSystem):
     """
@@ -132,6 +132,7 @@ cdef class SurfaceReactor(ReactionSystem):
                           sens_rtol=1e-4,
                           filterReactions=False,
                           dict conditions=None,
+                          int num_families=0,
                           ):
         """
         Initialize a simulation of the simple reactor using the provided kinetic
@@ -155,6 +156,7 @@ cdef class SurfaceReactor(ReactionSystem):
                                        sens_rtol=sens_rtol,
                                        filterReactions=filterReactions,
                                        conditions=conditions,
+                                       num_families=num_families,
                                        )
         cdef numpy.ndarray[numpy.int_t, ndim=1] speciesOnSurface, reactionsOnSurface
         cdef int index
@@ -177,7 +179,7 @@ cdef class SurfaceReactor(ReactionSystem):
 
         # Compute reaction thresholds if reaction filtering is turned on
         if filterReactions:
-            ReactionSystem.set_initial_reaction_thresholds(self)
+            ReactionSystem.set_initial_reaction_thresholds(self, num_families)
 
         # Generate forward and reverse rate coefficients k(T,P)
         self.generate_rate_coefficients(coreReactions, edgeReactions)

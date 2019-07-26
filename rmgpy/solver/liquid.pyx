@@ -41,7 +41,7 @@ cimport cython
 import rmgpy.constants as constants
 cimport rmgpy.constants as constants
 from rmgpy.quantity import Quantity
-from rmgpy.quantity cimport ScalarQuantity, ArrayQuantity
+from rmgpy.quantity cimport ScalarQuantity
 
 cdef class LiquidReactor(ReactionSystem):
     """
@@ -117,7 +117,7 @@ cdef class LiquidReactor(ReactionSystem):
     cpdef initializeModel(self, list coreSpecies, list coreReactions, list edgeSpecies, list edgeReactions,
                           list surfaceSpecies=None, list surfaceReactions=None, list pdepNetworks=None,
                           atol=1e-16, rtol=1e-8, sensitivity=False, sens_atol=1e-6, sens_rtol=1e-4,
-                          filterReactions=False, dict conditions=None):
+                          filterReactions=False, dict conditions=None, int num_families=0):
         """
         Initialize a simulation of the liquid reactor using the provided kinetic
         model.
@@ -131,16 +131,16 @@ cdef class LiquidReactor(ReactionSystem):
         # This initializes the attributes declared in the base class
         ReactionSystem.initializeModel(self, coreSpecies, coreReactions, edgeSpecies, edgeReactions,
                                        surfaceSpecies=surfaceSpecies, surfaceReactions=surfaceReactions,
-                                       pdepNetworks=pdepNetworks, atol=atol, rtol=rtol,
-                                       sensitivity=sensitivity, sens_atol=sens_atol, sens_rtol=sens_rtol,
-                                       filterReactions=filterReactions, conditions=conditions)
+                                       pdepNetworks=pdepNetworks, atol=atol, rtol=rtol, sensitivity=sensitivity,
+                                       sens_atol=sens_atol, sens_rtol=sens_rtol, filterReactions=filterReactions,
+                                       conditions=conditions, num_families=num_families)
 
         # Set initial conditions
         self.set_initial_conditions()
 
         # Compute reaction thresholds if reaction filtering is turned on
         if filterReactions:
-            ReactionSystem.set_initial_reaction_thresholds(self)
+            ReactionSystem.set_initial_reaction_thresholds(self, num_families)
 
         # Generate forward and reverse rate coefficients k(T,P)
         self.generate_rate_coefficients(coreReactions, edgeReactions)
@@ -169,18 +169,18 @@ cdef class LiquidReactor(ReactionSystem):
     def get_threshold_rate_constants(self, modelSettings):
         """
         Get the threshold rate constants for reaction filtering.
-
-        modelSettings is not used here, but is needed so that the method
-        matches the one in simpleReactor.
         """
-        # Set the maximum unimolecular rate to be kB*T/h
-        unimolecular_threshold_rate_constant = 2.08366122e10 * self.T.value_si
-        # Set the maximum bi/trimolecular rates based on the Smoluchowski and Stokes-Einstein equations
-        bimolecular_threshold_rate_constant = 22.2 * self.T.value_si / self.viscosity
-        trimolecular_threshold_rate_constant = 0.11 * self.T.value_si / self.viscosity
-        return (unimolecular_threshold_rate_constant,
-                bimolecular_threshold_rate_constant,
-                trimolecular_threshold_rate_constant)
+        # Set the unimolecular rate to kB*T/h
+        kvals_uni = numpy.full(len(modelSettings.unimolecularFilterFit), constants.kB * self.T.value_si / constants.h,
+                               dtype=numpy.float64)
+
+        # Set the bi/trimolecular rates based on the Smoluchowski and Stokes-Einstein equations
+        kvals_bi = numpy.full(len(modelSettings.unimolecularFilterFit), 22.2 * self.T.value_si / self.viscosity,
+                              dtype=numpy.float64)
+        kvals_tri = numpy.full(len(modelSettings.unimolecularFilterFit), 0.11 * self.T.value_si / self.viscosity,
+                               dtype=numpy.float64)
+
+        return (kvals_uni, kvals_bi, kvals_tri)
 
     def set_initial_conditions(self):
         """
