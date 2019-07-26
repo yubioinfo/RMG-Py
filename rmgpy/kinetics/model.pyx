@@ -35,6 +35,7 @@ import numpy
 
 import rmgpy.quantity as quantity
 from rmgpy.molecule import Molecule
+from rmgpy.rmgobject cimport RMGObject
 
 from libc.math cimport log10
 
@@ -90,7 +91,7 @@ cpdef int getReactionOrderFromRateCoefficientUnits(kunits) except -1:
 
 ################################################################################
 
-cdef class KineticsModel:
+cdef class KineticsModel(RMGObject):
     """
     A base class for chemical kinetics models, containing several attributes
     common to all models:

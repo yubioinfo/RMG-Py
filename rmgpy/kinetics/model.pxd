@@ -29,6 +29,7 @@ cimport numpy
 
 from rmgpy.quantity cimport ScalarQuantity, ArrayQuantity
 from rmgpy.kinetics.uncertainties cimport RateUncertainty
+from rmgpy.rmgobject cimport RMGObject
 
 ################################################################################
 
@@ -38,7 +39,7 @@ cpdef int getReactionOrderFromRateCoefficientUnits(kunits) except -1
 
 ################################################################################
 
-cdef class KineticsModel:
+cdef class KineticsModel(RMGObject):
     
     cdef public ScalarQuantity _Tmin, _Tmax
     cdef public ScalarQuantity _Pmin, _Pmax
