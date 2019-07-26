@@ -33,8 +33,9 @@ Contains functions for generating reactions.
 """
 import logging
 
-from rmgpy.data.rmg import getDB
 from multiprocessing import Pool
+
+from rmgpy.data.rmg import getDB
 
 ################################################################################
 
@@ -105,6 +106,8 @@ def react_all(core_spc_list, numOldCoreSpecies, unimolecularReact, bimolecularRe
 
     For parallel processing, reaction families are split per task for improved
     load balancing. This is currently hard-coded using reaction family labels.
+    Species tuples are only generated if the associated family allows unimolecular or bimolecular reactions, respectively.
+    Note: The bi- and trimolecularReact flags are only set for the upper part of the tensor.
 
     Args:
         core_spc_list (list): list of all core species
@@ -118,59 +121,73 @@ def react_all(core_spc_list, numOldCoreSpecies, unimolecularReact, bimolecularRe
         a list of lists of reactions generated from each species tuple
         a list of species tuples corresponding to each list of reactions
     """
+    family_names, families = zip(*getDB('kinetics').families.items())
+
+    # List of families that should not react together as they are likely to generate a lot of reactions and
+    # therefore negatively impact load balancing for multiprocessing
+    major_families = [
+        'H_Abstraction', 'R_Recombination', 'Intra_Disproportionation', 'Intra_RH_Add_Endocyclic',
+        'Singlet_Carbene_Intra_Disproportionation', 'Intra_ene_reaction', 'Disproportionation',
+        '1,4_Linear_birad_scission', 'R_Addition_MultipleBond', '2+2_cycloaddition_Cd', 'Diels_alder_addition',
+        'Intra_RH_Add_Exocyclic', 'Intra_Retro_Diels_alder_bicyclic', 'Intra_2+2_cycloaddition_Cd',
+        'Birad_recombination', 'Intra_Diels_alder_monocyclic', '1,4_Cyclic_birad_scission', '1,2_Insertion_carbene',
+    ]
+
+    # Only employ family splitting for reactants that have a larger number than min_atoms
+    min_atoms = 10
+
     # Select reactive species that can undergo unimolecular reactions:
-    spc_tuples = [(core_spc_list[i],)
-                  for i in xrange(numOldCoreSpecies) if (unimolecularReact[i] and core_spc_list[i].reactive)]
+    spc_tuples = []
+    for i in xrange(numOldCoreSpecies):
+        fam_leftovers = []
+        for k, family in enumerate(family_names):
+            # Find reactions involving the species that are unimolecular and only generate tuple if family is not
+            # bimolecular in forward and backward direction.
+            if (len(families[k].forwardTemplate.reactants) == 1 or len(families[k].forwardTemplate.products) == 1):
+                if core_spc_list[i].reactive and unimolecularReact[i, k]:
+                    if family in major_families and len(core_spc_list[i].molecule[0].atoms) > min_atoms:
+                        spc_tuples.append(((core_spc_list[i], ), family))
+                    else:
+                        fam_leftovers.append(family)
+        if fam_leftovers:
+            spc_tuples.append(((core_spc_list[i], ), fam_leftovers))
 
     for i in xrange(numOldCoreSpecies):
         for j in xrange(i, numOldCoreSpecies):
-            # Find reactions involving the species that are bimolecular.
-            # This includes a species reacting with itself (if its own concentration is high enough).
-            if bimolecularReact[i, j]:
-                if core_spc_list[i].reactive and core_spc_list[j].reactive:
-                    spc_tuples.append((core_spc_list[i], core_spc_list[j]))
+            fam_leftovers = []
+            for k, family in enumerate(family_names):
+                # Find reactions involving the species that are bimolecular
+                # This includes a species reacting with itself (if its own concentration is high enough)
+                if (len(families[k].forwardTemplate.reactants) == 2 or len(families[k].forwardTemplate.products) == 2):
+                    if bimolecularReact[i, j, k] and core_spc_list[i].reactive and core_spc_list[j].reactive:
+                        if family in major_families and len(core_spc_list[i].molecule[0].atoms) > min_atoms or \
+                                len(core_spc_list[j].molecule[0].atoms) > min_atoms:
+                            spc_tuples.append(((core_spc_list[i], core_spc_list[j]), family))
+                        else:
+                            fam_leftovers.append(family)
+            if fam_leftovers:
+                spc_tuples.append(((core_spc_list[i], core_spc_list[j]), fam_leftovers))
 
     if trimolecularReact is not None:
         for i in xrange(numOldCoreSpecies):
             for j in xrange(i, numOldCoreSpecies):
                 for k in xrange(j, numOldCoreSpecies):
-                    # Find reactions involving the species that are trimolecular.
-                    if trimolecularReact[i, j, k]:
-                        if core_spc_list[i].reactive and core_spc_list[j].reactive and core_spc_list[k].reactive:
-                            spc_tuples.append((core_spc_list[i], core_spc_list[j], core_spc_list[k]))
+                    fam_leftovers = []
+                    for l, family in enumerate(family_names):
+                        # Find reactions involving the species that are trimolecular
+                        if (len(families[k].forwardTemplate.reactants) == 3 or
+                                len(families[k].forwardTemplate.products) == 3):
+                            if trimolecularReact[i, j, k, l] and core_spc_list[i].reactive and \
+                                    core_spc_list[j].reactive and core_spc_list[k].reactive:
+                                if family in major_families and len(core_spc_list[i].molecule[0].atoms) > min_atoms or \
+                                        len(core_spc_list[j].molecule[0].atoms) > min_atoms or \
+                                        len(core_spc_list[k].molecule[0].atoms) > min_atoms:
+                                    spc_tuples.append(((core_spc_list[i], core_spc_list[j],
+                                                       core_spc_list[k]), family))
+                                else:
+                                    fam_leftovers.append(family)
+                    if fam_leftovers:
+                        spc_tuples.append(((core_spc_list[i], core_spc_list[j], core_spc_list[k]), fam_leftovers))
 
-    if procnum == 1:
-        # React all families like normal (provide empty argument for only_families)
-        spc_fam_tuples = zip(spc_tuples)
-    else:
-        # Identify and split families that are prone to generate many reactions into sublists.
-        family_list = getDB('kinetics').families.keys()
-        major_families = [
-            'H_Abstraction', 'R_Recombination', 'Intra_Disproportionation', 'Intra_RH_Add_Endocyclic',
-            'Singlet_Carbene_Intra_Disproportionation', 'Intra_ene_reaction', 'Disproportionation',
-            '1,4_Linear_birad_scission', 'R_Addition_MultipleBond', '2+2_cycloaddition_Cd', 'Diels_alder_addition',
-            'Intra_RH_Add_Exocyclic', 'Intra_Retro_Diels_alder_bicyclic', 'Intra_2+2_cycloaddition_Cd',
-            'Birad_recombination', 'Intra_Diels_alder_monocyclic', '1,4_Cyclic_birad_scission', '1,2_Insertion_carbene',
-        ]
-
-        split_list = []
-        leftovers = []
-        for fam in family_list:
-            if fam in major_families:
-                split_list.append([fam])
-            else:
-                leftovers.append(fam)
-        split_list.append(leftovers)
-
-        # Only employ family splitting for reactants that have a larger number than min_atoms
-        min_atoms = 10
-        spc_fam_tuples = []
-        for i, spc_tuple in enumerate(spc_tuples):
-            if any([len(spc.molecule[0].atoms) > min_atoms for spc in spc_tuple]):
-                for item in split_list:
-                    spc_fam_tuples.append((spc_tuple, item))
-            else:
-                spc_fam_tuples.append((spc_tuple, ))
-
-    return react(spc_fam_tuples, procnum), [fam_tuple[0] for fam_tuple in spc_fam_tuples]
+    return react(spc_tuples, procnum), [fam_tuple[0] for fam_tuple in spc_tuples]
 
