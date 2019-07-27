@@ -38,7 +38,7 @@ jobs:
     - stage: test
       install:
         # Clone RMG-database
-        - git clone https://github.com/ReactionMechanismGenerator/RMG-database.git
+        - git clone -b reference_yaml https://github.com/ReactionMechanismGenerator/RMG-database.git
         # install Q2DTor
         - git clone https://github.com/mjohnson541/Q2DTor.git RMG-Py/external/Q2DTor --branch arkane
         # build environment and activate
