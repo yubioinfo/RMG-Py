@@ -655,8 +655,8 @@ class TestEnlarge(unittest.TestCase):
         """Test that enlarge properly generated reactions"""
         self.rmg.reactionModel.enlarge(
             reactEdge=True,
-            unimolecularReact=np.array([0, 1, 0], bool),
-            bimolecularReact=np.zeros((3, 3), bool),
+            unimolecularReact=np.array([[0, 0], [1, 0], [0, 0]], bool),
+            bimolecularReact=np.zeros((3, 3, 3), bool),
         )
 
         self.assertEqual(len(self.rmg.reactionModel.edge.species), 2)

@@ -41,7 +41,9 @@ from rmgpy.data.kinetics.common import saveEntry, find_degenerate_reactions, ens
 from rmgpy.data.kinetics.database import KineticsDatabase
 from rmgpy.data.kinetics.family import TemplateReaction
 from rmgpy.data.rmg import RMGDatabase
+from rmgpy.kinetics.arrhenius import Arrhenius
 from rmgpy.molecule.molecule import Molecule
+from rmgpy.rmg.settings import ModelSettings
 from rmgpy.species import Species
 
 
@@ -1091,3 +1093,28 @@ class TestKinetics(unittest.TestCase):
         self.assertIn('*2',found_labels)
         self.assertIn('*3',found_labels)
 
+
+###################################################
+class TestLoadFilterFits(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        """
+        Load the database to test loading the YAML file with custom filter criteria.
+        """
+        global database
+        cls.database = database
+
+    def testLoad(self):
+        """
+        Test if loading Arrhenius fits of the highest training reaction rates in each reaction family from
+        `RMG-database/input/FilterArrheniusFits.yml` works.
+        """
+        model_settings_list = [ModelSettings(), ModelSettings()]
+        self.database.kinetics.loadFilterFits(settings['database.directory'], model_settings_list)
+
+        for model_settings in model_settings_list:
+            self.assertIsNotNone(model_settings.unimolecularFilterFit)
+            self.assertIsNotNone(model_settings.bimolecularFilterFit)
+            self.assertIsInstance(model_settings.unimolecularFilterFit[1], Arrhenius)
+            self.assertIsInstance(model_settings.bimolecularFilterFit[0], Arrhenius)
