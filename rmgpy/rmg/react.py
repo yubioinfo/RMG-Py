@@ -136,55 +136,57 @@ def react_all(core_spc_list, numOldCoreSpecies, unimolecularReact, bimolecularRe
     # Select reactive species that can undergo unimolecular reactions:
     spc_tuples = []
     for i in xrange(numOldCoreSpecies):
-        fam_leftovers = []
+        family_list = []
         for k, family in enumerate(family_names):
             # Find reactions involving the species that are unimolecular and only generate tuple if family is not
             # bimolecular in forward and backward direction.
             if (len(families[k].forwardTemplate.reactants) == 1 or len(families[k].forwardTemplate.products) == 1):
                 if core_spc_list[i].reactive and unimolecularReact[i, k]:
-                    if family in major_families and len(core_spc_list[i].molecule[0].atoms) > min_atoms:
+                    if procnum > 1 and family in major_families and len(core_spc_list[i].molecule[0].atoms) > min_atoms:
                         spc_tuples.append(((core_spc_list[i], ), family))
                     else:
-                        fam_leftovers.append(family)
-        if fam_leftovers:
-            spc_tuples.append(((core_spc_list[i], ), fam_leftovers))
+                        family_list.append(family)
+        if family_list:
+            spc_tuples.append(((core_spc_list[i], ), family_list))
 
     for i in xrange(numOldCoreSpecies):
         for j in xrange(i, numOldCoreSpecies):
-            fam_leftovers = []
+            family_list = []
             for k, family in enumerate(family_names):
                 # Find reactions involving the species that are bimolecular
                 # This includes a species reacting with itself (if its own concentration is high enough)
                 if (len(families[k].forwardTemplate.reactants) == 2 or len(families[k].forwardTemplate.products) == 2):
                     if bimolecularReact[i, j, k] and core_spc_list[i].reactive and core_spc_list[j].reactive:
-                        if family in major_families and len(core_spc_list[i].molecule[0].atoms) > min_atoms or \
-                                len(core_spc_list[j].molecule[0].atoms) > min_atoms:
+                        if (procnum > 1 and family in major_families and
+                                (len(core_spc_list[i].molecule[0].atoms) > min_atoms or
+                                 len(core_spc_list[j].molecule[0].atoms) > min_atoms)):
                             spc_tuples.append(((core_spc_list[i], core_spc_list[j]), family))
                         else:
-                            fam_leftovers.append(family)
-            if fam_leftovers:
-                spc_tuples.append(((core_spc_list[i], core_spc_list[j]), fam_leftovers))
+                            family_list.append(family)
+            if family_list:
+                spc_tuples.append(((core_spc_list[i], core_spc_list[j]), family_list))
 
     if trimolecularReact is not None:
         for i in xrange(numOldCoreSpecies):
             for j in xrange(i, numOldCoreSpecies):
                 for k in xrange(j, numOldCoreSpecies):
-                    fam_leftovers = []
+                    family_list = []
                     for l, family in enumerate(family_names):
                         # Find reactions involving the species that are trimolecular
                         if (len(families[k].forwardTemplate.reactants) == 3 or
                                 len(families[k].forwardTemplate.products) == 3):
-                            if trimolecularReact[i, j, k, l] and core_spc_list[i].reactive and \
-                                    core_spc_list[j].reactive and core_spc_list[k].reactive:
-                                if family in major_families and len(core_spc_list[i].molecule[0].atoms) > min_atoms or \
-                                        len(core_spc_list[j].molecule[0].atoms) > min_atoms or \
-                                        len(core_spc_list[k].molecule[0].atoms) > min_atoms:
-                                    spc_tuples.append(((core_spc_list[i], core_spc_list[j],
-                                                       core_spc_list[k]), family))
+                            if (trimolecularReact[i, j, k, l] and core_spc_list[i].reactive and
+                                    core_spc_list[j].reactive and core_spc_list[k].reactive):
+                                if (procnum > 1 and family in major_families and
+                                        (len(core_spc_list[i].molecule[0].atoms) > min_atoms or
+                                         len(core_spc_list[j].molecule[0].atoms) > min_atoms or
+                                         len(core_spc_list[k].molecule[0].atoms) > min_atoms)):
+                                    spc_tuples.append(((core_spc_list[i], core_spc_list[j], core_spc_list[k]),
+                                                       family))
                                 else:
-                                    fam_leftovers.append(family)
-                    if fam_leftovers:
-                        spc_tuples.append(((core_spc_list[i], core_spc_list[j], core_spc_list[k]), fam_leftovers))
+                                    family_list.append(family)
+                    if family_list:
+                        spc_tuples.append(((core_spc_list[i], core_spc_list[j], core_spc_list[k]), family_list))
 
     return react(spc_tuples, procnum), [fam_tuple[0] for fam_tuple in spc_tuples]
 
