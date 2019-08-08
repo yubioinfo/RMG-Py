@@ -118,7 +118,13 @@ def react_all(core_spc_list, numOldCoreSpecies, unimolecularReact, bimolecularRe
         a list of lists of reactions generated from each species tuple
         a list of species tuples corresponding to each list of reactions
     """
-    family_names, families = zip(*getDB('kinetics').families.items())
+    # Retrieve the molecularity for each family
+    fam_molecularity = {}
+    for label, family in getDB('kinetics').families.items():
+        fam_molecularity[label] = [
+            family.reactantNum or len(family.forwardTemplate.reactants),
+            family.productNum or len(family.forwardTemplate.products),
+        ]
 
     # List of families that should not react together as they are likely to generate a lot of reactions and
     # therefore negatively impact load balancing for multiprocessing
@@ -137,10 +143,10 @@ def react_all(core_spc_list, numOldCoreSpecies, unimolecularReact, bimolecularRe
     spc_tuples = []
     for i in xrange(numOldCoreSpecies):
         family_list = []
-        for k, family in enumerate(family_names):
+        for k, (family, molecularity) in enumerate(fam_molecularity.items()):
             # Find reactions involving the species that are unimolecular and only generate tuple if family is not
             # bimolecular in forward and backward direction.
-            if (len(families[k].forwardTemplate.reactants) == 1 or len(families[k].forwardTemplate.products) == 1):
+            if 1 in molecularity:
                 if core_spc_list[i].reactive and unimolecularReact[i, k]:
                     if procnum > 1 and family in major_families and len(core_spc_list[i].molecule[0].atoms) > min_atoms:
                         spc_tuples.append(((core_spc_list[i], ), family))
@@ -152,10 +158,10 @@ def react_all(core_spc_list, numOldCoreSpecies, unimolecularReact, bimolecularRe
     for i in xrange(numOldCoreSpecies):
         for j in xrange(i, numOldCoreSpecies):
             family_list = []
-            for k, family in enumerate(family_names):
+            for k, (family, molecularity) in enumerate(fam_molecularity.items()):
                 # Find reactions involving the species that are bimolecular
                 # This includes a species reacting with itself (if its own concentration is high enough)
-                if (len(families[k].forwardTemplate.reactants) == 2 or len(families[k].forwardTemplate.products) == 2):
+                if 2 in molecularity:
                     if bimolecularReact[i, j, k] and core_spc_list[i].reactive and core_spc_list[j].reactive:
                         if (procnum > 1 and family in major_families and
                                 (len(core_spc_list[i].molecule[0].atoms) > min_atoms or
@@ -171,10 +177,9 @@ def react_all(core_spc_list, numOldCoreSpecies, unimolecularReact, bimolecularRe
             for j in xrange(i, numOldCoreSpecies):
                 for k in xrange(j, numOldCoreSpecies):
                     family_list = []
-                    for l, family in enumerate(family_names):
+                    for l, (family, molecularity) in enumerate(fam_molecularity.items()):
                         # Find reactions involving the species that are trimolecular
-                        if (len(families[k].forwardTemplate.reactants) == 3 or
-                                len(families[k].forwardTemplate.products) == 3):
+                        if 3 in molecularity:
                             if (trimolecularReact[i, j, k, l] and core_spc_list[i].reactive and
                                     core_spc_list[j].reactive and core_spc_list[k].reactive):
                                 if (procnum > 1 and family in major_families and
