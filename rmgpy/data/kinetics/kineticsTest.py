@@ -1093,6 +1093,101 @@ class TestKinetics(unittest.TestCase):
         self.assertIn('*2',found_labels)
         self.assertIn('*3',found_labels)
 
+    def test_species_preserved_after_generate_reactions(self):
+        """Test that Species objects do not retain changes after generating reactions"""
+        r1 = Species(index=1, label='ethyl', SMILES='C[CH2]')
+        r1_copy = r1.copy(deep=True)  # These copies record the state of the original attributes
+        expected_product_1 = Species(SMILES='CC')
+        expected_product_2 = Species(SMILES='C=C')
+
+        reaction_list = self.database.kinetics.generate_reactions_from_families(
+            [r1, r1], only_families=['Disproportionation'], resonance=True
+        )
+
+        # First confirm that we get the expected reaction
+        self.assertEqual(len(reaction_list), 1)
+        reaction = reaction_list[0]
+        case_1 = reaction.products[0].isIsomorphic(expected_product_1) and reaction.products[1].isIsomorphic(expected_product_2)
+        case_2 = reaction.products[0].isIsomorphic(expected_product_2) and reaction.products[1].isIsomorphic(expected_product_1)
+        # Only one case should be true
+        self.assertTrue(case_1 or case_2)
+
+        r1_out, r2_out = reaction.reactants
+
+        # The species in the output reaction should be new objects because we made them from Molecule objects
+        self.assertIsNot(r1, r1_out)
+        self.assertIsNot(r1, r2_out)
+
+        # The molecule objects should be the same references for the first output species
+        self.assertIsNot(r1.molecule[0], r1_out.molecule[0])
+        self.assertIs(r1.molecule[0], r2_out.molecule[0])
+
+        # They should be isomorphic
+        self.assertTrue(r1.isIsomorphic(r1_out))
+        self.assertTrue(r1.isIsomorphic(r2_out))
+        self.assertTrue(r1_copy.isIsomorphic(r1_out))
+        self.assertTrue(r1_copy.isIsomorphic(r2_out))
+
+        # Now, we only care whether the original reactants have deviated from the copies
+        # The output reactants will be replaced by the original reactants in CERM.checkForExistingSpecies
+        self.assertEqual(r1.index, r1_copy.index)
+        self.assertEqual(r1.label, r1_copy.label)
+        self.assertEqual(r1.props, r1_copy.props)
+        self.assertEqual(r1.molecule, r1_copy.molecule)
+        self.assertEqual(r1.molecule[0].getLabeledAtoms(), r1_copy.molecule[0].getLabeledAtoms())
+        self.assertEqual(r1.molecule[0].props, r1_copy.molecule[0].props)
+
+    def test_species_preserved_after_generate_reactions_2(self):
+        """Test that Species objects do not retain changes after generating reactions
+
+        This tests a case involving benzene bond modification"""
+        r1 = Species(index=1, label='methyl', SMILES='[CH3]')
+        r2 = Species(index=2, label='benzene', SMILES='c1ccccc1')
+        r2.generate_resonance_structures()  # Only benzene has resonance structures
+        r1_copy = r1.copy(deep=True)  # These copies record the state of the original attributes
+        r2_copy = r2.copy(deep=True)
+        expected_product = Species(SMILES='CC1[CH]C=CC=C1')
+
+        reaction_list = self.database.kinetics.generate_reactions_from_families(
+            [r1, r2], only_families=['R_Addition_MultipleBond'], resonance=True
+        )
+
+        # First confirm that we get the expected reaction
+        self.assertEqual(len(reaction_list), 1)
+        reaction = reaction_list[0]
+        self.assertTrue(reaction.products[0].isIsomorphic(expected_product))
+
+        r1_out, r2_out = reaction.reactants
+
+        # The species in the output reaction should be new objects because we made them from Molecule objects
+        self.assertIsNot(r1, r1_out)
+        self.assertIsNot(r2, r2_out)
+
+        # However, the molecule objects should be the same references
+        self.assertIs(r1.molecule[0], r1_out.molecule[0])
+        self.assertIs(r2.molecule[0], r2_out.molecule[0])
+
+        # They should be isomorphic
+        self.assertTrue(r1.isIsomorphic(r1_out))
+        self.assertTrue(r2.isIsomorphic(r2_out))
+        self.assertTrue(r1_copy.isIsomorphic(r1_out))
+        self.assertTrue(r2_copy.isIsomorphic(r2_out))
+
+        # Now, we only care whether the original reactants have deviated from the copies
+        # The output reactants will be replaced by the original reactants in CERM.checkForExistingSpecies
+        self.assertEqual(r1.index, r1_copy.index)
+        self.assertEqual(r2.index, r2_copy.index)
+        self.assertEqual(r1.label, r1_copy.label)
+        self.assertEqual(r2.label, r2_copy.label)
+        self.assertEqual(r1.props, r1_copy.props)
+        self.assertEqual(r2.props, r2_copy.props)
+        self.assertEqual(r1.molecule, r1_copy.molecule)
+        self.assertEqual(r2.molecule, r2_copy.molecule)
+        self.assertEqual(r1.molecule[0].getLabeledAtoms(), r1_copy.molecule[0].getLabeledAtoms())
+        self.assertEqual(r2.molecule[0].getLabeledAtoms(), r2_copy.molecule[0].getLabeledAtoms())
+        self.assertEqual(r1.molecule[0].props, r1_copy.molecule[0].props)
+        self.assertEqual(r2.molecule[0].props, r2_copy.molecule[0].props)
+
 
 ###################################################
 class TestLoadFilterFits(unittest.TestCase):
