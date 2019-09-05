@@ -221,6 +221,24 @@ class TestReferenceDatabase(unittest.TestCase):
         model_chemistry_list = self.database.list_available_chemistry()
         self.assertIn('wb97m-v_def2-tzvpd', model_chemistry_list)
 
+    def test_get_species_from_index(self):
+        """
+        Test that we can retrieve a list of species with specific indices
+        """
+        test_indices = [5, 20, 105]
+        retrieved_species = self.database.get_species_from_index(test_indices)
+        self.assertEqual(len(retrieved_species), 3)
+        self.assertEqual(retrieved_species[1].index, 20)
+
+    def test_get_species_from_label(self):
+        """
+        Test that we can retrieve a list of species with specific labels
+        """
+        test_labels = ['1-Butene', 'Acetic acid', 'Ethanol']
+        retrieved_species = self.database.get_species_from_label(test_labels)
+        self.assertEqual(len(retrieved_species), 3)
+        self.assertEqual(retrieved_species[1].label, 'Acetic Acid')
+
 
 if __name__ == '__main__':
     unittest.main(testRunner=unittest.TextTestRunner(verbosity=2))
