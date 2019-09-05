@@ -41,8 +41,6 @@ from arkane.reference import ReferenceSpecies, ReferenceDataEntry, CalculatedDat
 from rmgpy.species import Species
 from rmgpy.statmech import Conformer
 from rmgpy.thermo import ThermoData
-from rmgpy.thermo.nasa import NASA
-from rmgpy.thermo.wilhoit import Wilhoit
 
 
 ################################################################################
@@ -130,20 +128,14 @@ class TestReferenceSpecies(unittest.TestCase):
         """
         Test that the CalculatedDataEntry class functions properly and enforces the standard for storing data
         """
-        data_entry = CalculatedDataEntry(Conformer(), NASA(), self.thermo_data)
-        self.assertEqual(data_entry.thermo_data.H298.value_si, 100000.0)
-
-        data_entry = CalculatedDataEntry(Conformer(), Wilhoit(), self.thermo_data)
+        data_entry = CalculatedDataEntry(Conformer(), self.thermo_data)
         self.assertEqual(data_entry.thermo_data.H298.value_si, 100000.0)
 
         with self.assertRaises(ValueError):
-            _ = CalculatedDataEntry({'xyz': '0 0 0'}, NASA(), self.thermo_data)
+            _ = CalculatedDataEntry({'xyz': '0 0 0'}, self.thermo_data)
 
         with self.assertRaises(ValueError):
-            _ = CalculatedDataEntry(Conformer(), {'coeffs': []}, self.thermo_data)
-
-        with self.assertRaises(ValueError):
-            _ = CalculatedDataEntry(Conformer(), NASA(), {'H298': (100.0, 'kJ/mol')})
+            _ = CalculatedDataEntry(Conformer(), {'H298': (100.0, 'kJ/mol')})
 
 
 class TestReferenceDatabase(unittest.TestCase):
@@ -186,8 +178,8 @@ class TestReferenceDatabase(unittest.TestCase):
         ref_data_1 = ReferenceDataEntry(ThermoData(H298=(100, 'kJ/mol', '+|-', 2)))
         ref_data_2 = ReferenceDataEntry(ThermoData(H298=(25, 'kcal/mol', '+|-', 1)))
 
-        calc_data_1 = CalculatedDataEntry(Conformer(), NASA(), ThermoData(H298=(110, 'kJ/mol')))
-        calc_data_2 = CalculatedDataEntry(Conformer(), NASA(), ThermoData(H298=(120, 'kJ/mol')))
+        calc_data_1 = CalculatedDataEntry(Conformer(), ThermoData(H298=(110, 'kJ/mol')))
+        calc_data_2 = CalculatedDataEntry(Conformer(), ThermoData(H298=(120, 'kJ/mol')))
 
         ethane = ReferenceSpecies(smiles='CC',
                                   reference_data={'precise': ref_data_1, 'less_precise': ref_data_2},
