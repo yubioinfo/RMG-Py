@@ -453,9 +453,14 @@ class ReferenceDatabase(object):
         Returns:
             List
         """
+        if not isinstance(indices, list):
+            indices = [indices]
+
         reference_species_list = []
         search_set = self.reference_sets[set_name]
         for index in indices:
+            if not isinstance(index, int):
+                index = int(index)
             for ref_spcs in search_set:
                 if ref_spcs.index == index:
                     reference_species_list.append(ref_spcs)
@@ -463,6 +468,8 @@ class ReferenceDatabase(object):
             else:
                 raise ValueError('No reference species with index {0} was found in reference set {1}'.format(index,
                                                                                                              set_name))
+
+        return reference_species_list
 
     def get_species_from_label(self, labels, set_name='main'):
         """
@@ -475,9 +482,14 @@ class ReferenceDatabase(object):
         Returns:
             List
         """
+        if not isinstance(labels, list):
+            labels = [labels]
+
         reference_species_list = []
         search_set = self.reference_sets[set_name]
         for label in labels:
+            if not isinstance(label, str):
+                label = str(label)
             for ref_spcs in search_set:
                 if ref_spcs.label == label:
                     reference_species_list.append(ref_spcs)
@@ -485,6 +497,8 @@ class ReferenceDatabase(object):
             else:
                 raise ValueError('No reference species with label "{0}" was found in reference set '
                                  '{1}'.format(label, set_name))
+
+        return reference_species_list
 
 
 if __name__ == '__main__':
