@@ -242,10 +242,13 @@ class ReferenceSpecies(ArkaneSpecies):
             chemistry with a highly accurate equilibrium geometry
 
         Returns:
-            ArrayQuantity
+            dict: {'numbers': np.ndarray, 'coords': np.ndarray} Coordinates are returned in angstroms
         """
         if self.default_xyz_chemistry:
-            return self.calculated_data[self.default_xyz_chemistry].conformer.coordinates
+            conformer = self.calculated_data[self.default_xyz_chemistry].conformer
+            xyz_data = {'numbers': conformer.number.value_si, 'coords': conformer.coordinates.value_si * (10.0 ** 10.0)}
+            return xyz_data
+
         else:
             raise ValueError('The default model chemistry to use for XYZ coordinates has not been set '
                              'for {0}'.format(self))
