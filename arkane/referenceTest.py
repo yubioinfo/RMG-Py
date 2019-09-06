@@ -223,10 +223,10 @@ class TestReferenceDatabase(unittest.TestCase):
         """
         Test that we can retrieve a list of species with specific indices
         """
-        test_indices = [5, 20, 105]
+        test_indices = [5, 309, 105]
         retrieved_species = self.database.get_species_from_index(test_indices)
         self.assertEqual(len(retrieved_species), 3)
-        self.assertEqual(retrieved_species[1].index, 20)
+        self.assertEqual(retrieved_species[1].index, 309)
 
     def test_get_species_from_label(self):
         """
@@ -235,7 +235,7 @@ class TestReferenceDatabase(unittest.TestCase):
         test_labels = ['1-Butene', 'Acetic acid', 'Ethanol']
         retrieved_species = self.database.get_species_from_label(test_labels)
         self.assertEqual(len(retrieved_species), 3)
-        self.assertEqual(retrieved_species[1].label, 'Acetic Acid')
+        self.assertEqual(retrieved_species[0].label, '1-Butene')
 
 
 if __name__ == '__main__':
