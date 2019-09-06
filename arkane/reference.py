@@ -42,6 +42,7 @@ import yaml
 
 from arkane.common import ArkaneSpecies, ARKANE_CLASS_DICT
 from arkane.isodesmic import ErrorCancelingSpecies
+from rmgpy import settings
 from rmgpy.molecule import Molecule
 from rmgpy.rmgobject import RMGObject
 from rmgpy.species import Species
@@ -358,9 +359,7 @@ class ReferenceDatabase(object):
                 and should contain a YAML file that defines the ReferenceSpecies object of that index, named {index}.yml
         """
         if not paths:  # Default to the main reference set in RMG-database
-            file_dir = os.path.dirname(os.path.abspath(__file__))
-            rmg_database_dir = os.path.join(os.path.dirname(os.path.dirname(file_dir)), 'RMG-database')
-            paths = [os.path.join(rmg_database_dir, 'input/reference_sets/main')]
+            paths = [os.path.join(settings['database.directory'], 'reference_sets/main')]
 
         if isinstance(paths, str):  # Convert to a list with one element
             paths = [paths]
@@ -369,12 +368,12 @@ class ReferenceDatabase(object):
         for path in paths:
             set_name = os.path.basename(path)
             logging.info('Loading in reference set `{0}` from {1} ...'.format(set_name, path))
-            spcs_dirs = os.listdir(path)
+            spcs_files = os.listdir(path)
             reference_set = []
-            for spcs in spcs_dirs:
+            for spcs in spcs_files:
                 ref_spcs = ReferenceSpecies.__new__(ReferenceSpecies)
-                ref_spcs.load_yaml(os.path.join(path, spcs, '{0}.yml'.format(spcs)))
-                molecule = Molecule(SMILES=ref_spcs.smiles)
+                ref_spcs.load_yaml(os.path.join(path, spcs))
+                molecule = Molecule().fromAdjacencyList(ref_spcs.adjacency_list)
                 if (len(ref_spcs.calculated_data) == 0) or (len(ref_spcs.reference_data) == 0):
                     logging.warning('Molecule {0} from reference set `{1}` does not have any reference data and/or '
                                     'calculated data. This entry will not be added'.format(ref_spcs.smiles, set_name))
@@ -383,8 +382,8 @@ class ReferenceDatabase(object):
                 for mol in molecule_list:
                     if molecule.isIsomorphic(mol):
                         logging.warning('Molecule {0} from reference set `{1}` already exists in the reference '
-                                        'database. The entry from this reference set will not '
-                                        'be added'.format(ref_spcs.smiles, set_name))
+                                        'database. The entry from this reference set will not be added. The path for '
+                                        'this species is {2}'.format(ref_spcs.smiles, set_name, spcs))
                         break
                 else:
                     molecule_list.append(molecule)
