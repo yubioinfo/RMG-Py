@@ -217,7 +217,7 @@ class TestReferenceDatabase(unittest.TestCase):
         Test that a set of available model chemistries can be return for the reference database
         """
         model_chemistry_list = self.database.list_available_chemistry()
-        self.assertIn('wb97m-v_def2-tzvpd', model_chemistry_list)
+        self.assertIn('wb97m-v/def2-tzvpd', model_chemistry_list)
 
     def test_get_species_from_index(self):
         """
