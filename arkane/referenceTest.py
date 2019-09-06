@@ -158,12 +158,10 @@ class TestReferenceDatabase(unittest.TestCase):
         data_dir = os.path.join(FILE_DIR, 'data')
         testing_dir = os.path.join(data_dir, 'testing_set')
         example_ref_file = os.path.join(data_dir, 'species', 'reference_species_example.yml')
-        spcs_dir = os.path.join(testing_dir, '0')
-        spcs_file = os.path.join(spcs_dir, '0.yml')
+        spcs_file = os.path.join(testing_dir, '0.yml')
         if os.path.exists(testing_dir):  # Delete the testing directory if it existed previously
             shutil.rmtree(testing_dir)
         os.mkdir(testing_dir)
-        os.mkdir(spcs_dir)
         shutil.copyfile(example_ref_file, spcs_file)
         self.database.load(paths=[testing_dir])
         self.assertIn('main', self.database.reference_sets)
