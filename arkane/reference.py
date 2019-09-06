@@ -183,7 +183,7 @@ class ReferenceSpecies(ArkaneSpecies):
         conformer = arkane_species.conformer
         thermo_data = arkane_species.thermo_data
         calc_data = CalculatedDataEntry(conformer, thermo_data,)
-        self.calculated_data[arkane_species.model_chemistry] = calc_data
+        self.calculated_data[arkane_species.level_of_theory] = calc_data
 
     def to_error_canceling_spcs(self, model_chemistry, source=None):
         """
