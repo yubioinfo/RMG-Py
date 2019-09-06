@@ -264,8 +264,8 @@ class QChemLog(Log):
                         rot.append(rotation)
 
                     inertia = []
-
-        modes = mmass + rot + freq
+        # Take only the last modes found (in the event of multiple jobs)
+        modes = mmass[-1:] + rot[-1:] + freq[-1:]
         return Conformer(E0=(e0 * 0.001, "kJ/mol"), modes=modes, spinMultiplicity=spinMultiplicity,
                          opticalIsomers=opticalIsomers), unscaled_frequencies
 
