@@ -27,6 +27,7 @@ dependencies:
   - mock
   - mopac
   - mpmath
+  - muq2
   - networkx
   - nose
   - numdifftools
