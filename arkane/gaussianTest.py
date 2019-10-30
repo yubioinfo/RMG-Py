@@ -210,6 +210,16 @@ class GaussianTest(unittest.TestCase):
             log.load_conformer()
         self.assertTrue(f'The Gaussian job in {file_path} did not converge.' in str(log_error.exception))
 
+    def test_gap_in_scan(self):
+        """
+        Ensures when an error occurs in the hindered rotors, proper distribution occurs
+        """
+        # load gaussian log with 10 degree separations, which has a failed optimization
+        log = GaussianLog(os.path.join(os.path.dirname(__file__), 'data', 'isobutanolQOOH_scan.log'))
+        with self.assertLogs(level=30):  # warnings only
+            angles = log.load_scan_energies()[1]
+        self.assertAlmostEqual(angles[1], 10. * np.pi / 180)
+        self.assertAlmostEqual(angles[-1], 2 * np.pi)
 
     def test_load_scan_with_freq(self):
         """
