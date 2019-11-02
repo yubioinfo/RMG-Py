@@ -220,6 +220,7 @@ class RMG(util.Subject):
         self.ml_settings = None
         self.species_constraints = {}
         self.walltime = '00:00:00:00'
+        self.save_seed_modulus = -1
         self.max_iterations = None
         self.initialization_time = 0
         self.kinetics_datastore = None
@@ -757,11 +758,12 @@ class RMG(util.Subject):
 
             # Main RMG loop
             while not self.done:
-                if self.generate_seed_each_iteration:
-                    self.make_seed_mech()
-
+                # iteration number starts at 0. Increment it before entering make_seed_mech
                 self.reaction_model.iteration_num += 1
                 self.done = True
+
+                if self.generate_seed_each_iteration:
+                    self.make_seed_mech()
 
                 all_terminated = True
                 num_core_species = len(self.reaction_model.core.species)
@@ -1286,11 +1288,17 @@ class RMG(util.Subject):
 
         seed_dir = os.path.join(self.output_directory, 'seed')
         filter_dir = os.path.join(seed_dir, 'filters')
+        previous_seeds_dir = os.path.join(self.output_directory, 'previous_seeds')
         temp_seed_dir = os.path.join(self.output_directory, 'seed_tmp')
 
         if first_time:
             if os.path.exists(seed_dir):  # This is a seed from a previous RMG run. Delete it
                 shutil.rmtree(seed_dir)
+            if os.path.exists(previous_seeds_dir):  # These are seeds from a previous RMG run. Delete them
+                shutil.rmtree(previous_seeds_dir)
+            # Create the previous_seeds_dir (if this feature is being used) to store seeds at specified iterations
+            if self.save_seed_modulus != -1:
+                os.makedirs(previous_seeds_dir, exist_ok=True)
         else:  # This is a seed from the previous iteration. Move it to a temporary directory in case we run into errors
             os.rename(seed_dir, os.path.join(temp_seed_dir))
 
@@ -1397,6 +1405,15 @@ class RMG(util.Subject):
                     f.write('restartFromSeed(path=\'seed\')\n\n')
                     with open(self.input_file, 'r') as input_file:
                         f.write(''.join(input_file.readlines()))
+
+            # Also, save the seed to the previous_seeds directory on specified iterations
+            if self.save_seed_modulus != -1:
+                if np.mod(self.reaction_model.iteration_num, self.save_seed_modulus) == 0:
+                    dst = os.path.join(previous_seeds_dir,
+                                       'iteration_number_{0}'.format(self.reaction_model.iteration_num))
+                    logging.info('Copying seed from seed directory to '
+                                 'previous_seeds/iteration_number_{0}'.format(self.reaction_model.iteration_num))
+                    shutil.copytree(seed_dir, dst)
 
             # Finally, delete the seed mechanism from the previous iteration (if it exists)
             if os.path.exists(temp_seed_dir):
