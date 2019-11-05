@@ -206,6 +206,20 @@ def simple_reactor(temperature,
             elif value[1] < value[0]:
                 raise InputError('Initial mole fraction range out of order: {0}'.format(key))
 
+    # normalize mole fractions if applicable
+    totalInitialMoles = sum(initialMoleFractions.values())
+    if totalInitialMoles != 1:
+        logging.warning('Initial mole fractions do not sum to one; normalizing.')
+        logging.info('Original composition:')
+        for spec, molfrac in initialMoleFractions.items():
+            logging.info('{0} = {1}'.format(spec, molfrac))
+        for spec in initialMoleFractions:
+            initialMoleFractions[spec] /= totalInitialMoles
+        logging.info('Normalized mole fractions:')
+        for spec, molfrac in initialMoleFractions.items():
+            logging.info('{0} = {1}'.format(spec, molfrac))
+        logging.info('')
+        
     if not isinstance(temperature, list):
         T = Quantity(temperature)
     else:
