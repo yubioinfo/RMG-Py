@@ -974,9 +974,7 @@ class RMG(util.Subject):
                 max_num_spcs_hit = False
 
         # Save the final seed mechanism
-        if self.generate_seed_each_iteration:
-            self.make_seed_mech()
-        else:
+        if not self.generate_seed_each_iteration:
             self.make_seed_mech(first_time=True)
 
         self.run_model_analysis()
