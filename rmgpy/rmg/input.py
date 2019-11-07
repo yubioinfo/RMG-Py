@@ -205,20 +205,6 @@ def simple_reactor(temperature,
                 raise InputError('Initial mole fractions cannot be negative.')
             elif value[1] < value[0]:
                 raise InputError('Initial mole fraction range out of order: {0}'.format(key))
-
-    # normalize mole fractions if applicable
-    totalInitialMoles = sum(initialMoleFractions.values())
-    if totalInitialMoles != 1:
-        logging.warning('Initial mole fractions do not sum to one; normalizing.')
-        logging.info('Original composition:')
-        for spec, molfrac in initialMoleFractions.items():
-            logging.info('{0} = {1}'.format(spec, molfrac))
-        for spec in initialMoleFractions:
-            initialMoleFractions[spec] /= totalInitialMoles
-        logging.info('Normalized mole fractions:')
-        for spec, molfrac in initialMoleFractions.items():
-            logging.info('{0} = {1}'.format(spec, molfrac))
-        logging.info('')
         
     if not isinstance(temperature, list):
         T = Quantity(temperature)
@@ -239,6 +225,19 @@ def simple_reactor(temperature,
     if not isinstance(temperature, list) and not isinstance(pressure, list) and all(
             [not isinstance(x, list) for x in initialMoleFractions.values()]):
         nSims = 1
+        # normalize mole fractions if applicable
+        total_initial_moles = sum(initialMoleFractions.values())
+        if total_initial_moles != 1:
+            logging.warning('Initial mole fractions do not sum to one; normalizing.')
+            logging.info('Original composition:')
+            for spec, molfrac in initialMoleFractions.items():
+                logging.info('{0} = {1}'.format(spec, molfrac))
+            for spec in initialMoleFractions:
+                initialMoleFractions[spec] /= total_initial_moles
+            logging.info('Normalized mole fractions:')
+            for spec, molfrac in initialMoleFractions.items():
+                logging.info('{0} = {1}'.format(spec, molfrac))
+            logging.info('')
 
     termination = []
     if terminationConversion is not None:
@@ -340,6 +339,18 @@ def liquid_reactor(temperature,
 
     if not isinstance(temperature, list) and all([not isinstance(x, list) for x in initialConcentrations.values()]):
         nSims = 1
+        total_initial_moles = sum(initialMoleFractions.values())
+        if total_initial_moles != 1:
+            logging.warning('Initial mole fractions do not sum to one; normalizing.')
+            logging.info('Original composition:')
+            for spec, molfrac in initialMoleFractions.items():
+                logging.info('{0} = {1}'.format(spec, molfrac))
+            for spec in initialMoleFractions:
+                initialMoleFractions[spec] /= total_initial_moles
+            logging.info('Normalized mole fractions:')
+            for spec, molfrac in initialMoleFractions.items():
+                logging.info('{0} = {1}'.format(spec, molfrac))
+            logging.info('')
 
     termination = []
     if terminationConversion is not None:
